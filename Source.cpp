@@ -12,6 +12,7 @@
 #include<numeric>
 #include<limits.h>
 #include<cmath>
+#include <sstream>
 
 using namespace std;
 
@@ -88,6 +89,12 @@ struct TreeNode {
     TreeNode *left;
     TreeNode *right;
     TreeNode(int x) : val(x), left(NULL), right(NULL) {}
+};
+
+struct TreeLinkNode {
+	int val;
+	TreeLinkNode *left, *right, *next;
+	TreeLinkNode(int x) : val(x), left(NULL), right(NULL), next(NULL) {}
 };
 
 //Definition for singly - linked list with a random pointer.
@@ -2152,11 +2159,147 @@ public:
 		return r;
 	}
 
-	//https://leetcode.com/problems/all-nodes-distance-k-in-binary-tree/description/
-	vector<int> distanceK(TreeNode* root, TreeNode* target, int K) {
+	//https://leetcode.com/problems/populating-next-right-pointers-in-each-node/
+	void connect(TreeLinkNode *root) {
+		if (!root || (!root->left && !root->right)) return;
+		connectHelper(root, NULL);
+	}
 
+	void connectHelper(TreeLinkNode *root, TreeLinkNode *sibling) {
+		if (!root || (root && !root->left && !root->right)) return;
+
+		//Connect the left node of the root to its right sibling
+		root->left->next = root->right;
+		//Connect the right sibling to its left cousin
+		root->right->next = sibling ? sibling->left : sibling;
+
+		connectHelper(root->left, root->right);
+		connectHelper(root->right, sibling ? sibling->left : sibling);
 	}
 /***********************************BINARY TREES***********************************/
+};
+
+//https://leetcode.com/problems/serialize-and-deserialize-bst/description/
+class Codec {
+private:
+	string m_sSerializedTree;
+	int m_iIndex;
+	vector<string> m_vSerializedTree;
+
+	void serializeTree(TreeNode *root) {
+		if (!root) return;
+
+		m_sSerializedTree += std::to_string(root->val) + ",";
+		serializeTree(root->left);
+		serializeTree(root->right);
+	}
+
+	TreeNode* deSerializeTree(int min, int max) {
+		if (m_iIndex >= m_vSerializedTree.size()) return NULL;
+
+		int val = std::stoi(m_vSerializedTree[m_iIndex]);
+
+		if (val < min || val > max) {
+			return NULL;
+		}
+
+		TreeNode *n = new TreeNode(val);
+		m_iIndex++;
+
+		n->left = deSerializeTree(min, val-1);
+		n->right = deSerializeTree(val+1, max);
+
+		return n;
+	}
+
+public:
+	Codec() {
+		m_iIndex = 0;
+		m_sSerializedTree = "";
+	}
+
+	// Encodes a tree to a single string.
+	string serialize(TreeNode* root) {
+		if (!root) return std::string();
+		serializeTree(root);
+		return m_sSerializedTree;
+	}
+
+	// Decodes your encoded data to tree.
+	TreeNode* deserialize(string data) {
+		//Tokenize the data
+		std::stringstream s(data);
+		string t;
+
+		while (getline(s, t, ',')) {
+			m_vSerializedTree.push_back(t);
+		}
+
+		return deSerializeTree(INT_MIN, INT_MAX);
+	}
+};
+
+//https://leetcode.com/problems/serialize-and-deserialize-binary-tree/description/
+class Codec2 {
+private:
+	vector<string> m_vSerialize;
+	int m_iIndex;
+	string m_sSerializedTree;
+
+	void serializeTree(TreeNode *root) {
+		if (!root) {
+			m_sSerializedTree += "#,";
+			return;
+		}
+
+		m_sSerializedTree += std::to_string(root->val) +",";
+
+		serializeTree(root->left);
+		serializeTree(root->right);
+	}
+
+	TreeNode* deSerializeTree() {
+		if (m_iIndex >= m_vSerialize.size()) return NULL;
+
+		if (m_vSerialize[m_iIndex] == "#") {
+			m_iIndex++;
+			return NULL;
+		}
+
+		TreeNode *n = new TreeNode(std::stoi(m_vSerialize[m_iIndex]));
+		m_iIndex++;
+
+		n->left = deSerializeTree();
+		n->right = deSerializeTree();
+
+		return n;
+	}
+
+public:
+	Codec2() {
+		m_vSerialize.clear();
+		m_iIndex = 0;
+	}
+
+	// Encodes a tree to a single string.
+	string serialize(TreeNode* root) {
+		string s = "";
+		serializeTree(root);
+		return m_sSerializedTree;
+	}
+
+	// Decodes your encoded data to tree.
+	TreeNode* deserialize(string data) {
+		//Tokenize the data
+		std::stringstream s(data);
+		string t;
+
+		while (getline(s, t, ',')) {
+			m_vSerialize.push_back(t);
+		}
+
+		return deSerializeTree();
+	}
 };
 
 //https://leetcode.com/problems/kth-largest-element-in-a-stream/description/
@@ -2218,12 +2361,17 @@ public:
 int main() {
 	Solution s;
 
-	TreeNode *n = new TreeNode(1);
-	n->left = new TreeNode(2);
-	n->right = new TreeNode(3);
-	n->left->left = new TreeNode(4);
+	TreeNode *n = new TreeNode(11);
+	n->left = new TreeNode(4);
+	n->right = new TreeNode(18);
+	n->right->left = new TreeNode(15);
+	n->right->right = new TreeNode(20);
+	n->left->left = new TreeNode(0);
+	n->left->right = new TreeNode(9);
+	n->left->right->right = new TreeNode(10);
 
-	s.addOneRow(n, 5, 4);
+	Codec2 c;
+	auto p = c.deserialize(c.serialize(n));
 
 	return 0;
 }
